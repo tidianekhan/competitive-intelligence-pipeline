@@ -19,7 +19,7 @@ def fetch_posts_needing_summary(limit=None):
 )
 
 
-    print(f"✅ Found {len(records)} posts needing summary")
+    print(f"Found {len(records)} posts needing summary")
 
     return records
 
@@ -42,5 +42,5 @@ def update_post_summary(record_id: str, summary_text: str):
         "Topic Summary": summary_text
     })
 
-    print(f"✅ Updated record {record_id}")
+    print(f"Updated record {record_id}")
 
