@@ -22,7 +22,7 @@ def build_digest_html(rows: List[Dict[str, str]]) -> str:
     html = f"""
     <html>
     <body style="font-family: Arial, sans-serif;">
-        <h2>📊 Daily Competitor Instagram Digest</h2>
+        <h2>📊git  Daily Competitor Instagram Digest</h2>
         <p>The following posts were summarized today:</p>
 
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
