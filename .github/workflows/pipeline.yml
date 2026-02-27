@@ -30,5 +30,9 @@ jobs:
           AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MAX_POSTS_PER_RUN: ${{ secrets.MAX_POSTS_PER_RUN }}
+
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+          DIGEST_RECIPIENTS: ${{ secrets.DIGEST_RECIPIENTS }}
         run: |
           python src/main.py
