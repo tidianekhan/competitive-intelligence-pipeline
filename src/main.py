@@ -12,13 +12,11 @@ if __name__ == "__main__":
     else:
         for post in posts:
             record_id = post["id"]
-            caption = post["fields"].get("Caption", "")
+            caption = post["fields"].get("caption", "")
 
             print(f"\nProcessing: {record_id}")
 
-            summary_data = generate_summary(caption)
-
-            # Only pass the summary string
-            update_post_summary(record_id, summary_data["summary"])
+            summary_text = generate_summary(caption)
+            update_post_summary(record_id, summary_text)    
 
     print("\nPipeline complete.")
