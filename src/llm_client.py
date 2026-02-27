@@ -17,6 +17,7 @@ def generate_summary(caption: str) -> str:
 
                 1. A 15–25 word neutral topic summary.
                 2. Then add a short section titled:
+
                 Similar Content Suggestions:
                 3. Provide 2 concise post ideas in similar tone and format.
 
