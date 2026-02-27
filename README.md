@@ -10,7 +10,7 @@ An AI-powered competitive intelligence pipeline that monitors competitor Instagr
 
 ## Overview
 
-This system automates the collection and enrichment of competitor social media content.
+This system automates the collection, enrichment, and distribution of competitor social media intelligence.
 
 The pipeline:
 
@@ -19,15 +19,19 @@ The pipeline:
 3. Identifies unprocessed posts  
 4. Generates concise AI-powered topic summaries  
 5. Updates Airtable records to prevent duplicate processing  
+6. Sends a daily automated HTML email digest of newly processed posts  
 
-The result is a scalable, structured competitive intelligence foundation ready for alerting and reporting.
+The result is a fully automated, scalable competitive intelligence system requiring zero manual intervention.
+
 
 ---
 
 ## Architecture
 
-Apify (Scheduled Scraper) --> Airtable (Central Intelligence Database) --> Python Intelligence Layer --> OpenAI (Topic Summarization) --> Airtable Update (Processed State)
+Apify (Scheduled Scraper) --> Airtable (Central Intelligence Database) --> Python Intelligence Layer --> OpenAI (Topic Summarization) --> Airtable Update (Processed State) --> SendGrid (Daily HTML Digest) --> Stakeholders
 
+
+The Python layer runs daily via GitHub Actions using secure environment secrets.
 
 ---
 
@@ -71,28 +75,52 @@ Once the summary field is populated, Airtable formula logic automatically exclud
 
 ---
 
-## Planned Extension (v3)
+## 4. Automated Digest Layer
 
-After each daily run, the system will generate a structured competitive digest including:
+After processing posts, the system:
 
-- Number of new posts per competitor
-- Key recurring themes
-- Notable high-engagement posts
-- Emerging patterns
+- Builds a structured HTML table digest
+- Includes:
+  - Competitor name
+  - Timestamp
+  - AI-generated topic summary
+  - Direct post link
+- Sends the digest via SendGrid
+- Only sends email if new summaries were generated
 
-The digest will be automatically emailed to stakeholders as a daily competitive intelligence briefing.
+This ensures stakeholders receive concise daily competitive intelligence updates without noise.
+
+---
+
+## Scheduling & Automation
+
+The system runs fully automatically via:
+
+- **Apify Scheduler** → Scraping
+- **GitHub Actions (cron job)** → Python enrichment + digest
+- **SendGrid** → Email delivery
+
+All secrets are managed securely via:
+
+- `.env` (local development)
+- GitHub Actions Secrets (production)
+
+No manual execution is required.
 
 ---
 
 ## What Changed vs v1
 
-Version 2 introduced significant architectural improvements:
+Version 2+ introduced significant architectural improvements:
 
 - Removed Make (reduced cost and complexity)
 - Implemented native Apify → Airtable integration
 - Introduced a dedicated Python intelligence layer
 - Added modular LLM abstraction
-- Designed scalable and extensible architecture
+- Implemented automated daily HTML email digest
+- Added GitHub Actions scheduling
+- Added secure secret management
+- Reduced external orchestration dependencies
 
 ---
 
@@ -102,6 +130,8 @@ Version 2 introduced significant architectural improvements:
 - OpenAI API (LLM abstraction layer)
 - Apify
 - Airtable
+- SendGrid
+- GitHub Actions (scheduler)
 - dotenv
 
 ---
@@ -115,6 +145,8 @@ src/
 ├── airtable_client.py # Airtable integration
 
 ├── llm_client.py # LLM abstraction layer
+
+├── email_client.py # SendGrid HTML digest layer
 
 ├── models.py # Data models
 
@@ -130,7 +162,16 @@ src/
 2. Create virtual environment
 3. Install dependencies: pip install -r requirements.txt
 4. Create `.env` file using `.env.example`
-5. Run the pipeline: python src/main.py
+5. Configure required environment variables:
+   AIRTABLE_API_KEY
+   AIRTABLE_BASE_ID
+   AIRTABLE_TABLE_NAME
+   OPENAI_API_KEY
+   SENDGRID_API_KEY
+   SENDGRID_FROM_EMAIL
+   DIGEST_RECIPIENTS
+   MAX_POSTS_PER_RUN
+6. Run the pipeline: python src/main.py
 
 
 ---
@@ -140,9 +181,10 @@ src/
 - Modular integrations
 - Clear separation of orchestration and API clients
 - Idempotent processing (no duplicate summaries)
-- Scalable architecture ready for reporting and alerting
-- Minimal external dependencies
-
+- Deterministic daily digest logic
+- Secure secret management
+- Minimal infrastructure overhead
+- Scalable architecture ready for advanced reporting
 ---
 
 ## Purpose
@@ -152,6 +194,7 @@ This project demonstrates:
 - Automation architecture design
 - API integration workflows
 - LLM-powered enrichment pipelines
+- Automated executive reporting systems
 - Structured intelligence system design
 - Clean modular Python implementation
 
