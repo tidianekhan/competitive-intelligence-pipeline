@@ -11,16 +11,15 @@ def fetch_posts_needing_summary(limit=None):
         AIRTABLE_TABLE_NAME,
     )
 
-    print("Fetching posts where Topic Summary is blank...")
+    print("Fetching posts where Processed is unchecked...")
 
     records = table.all(
-        formula="{Topic Summary} = BLANK()",
-        sort=[{"field": "timestamp", "direction": "desc"}],
+        formula="{Processed} = 0",
         max_records=limit
     )
 
     print(f"Found {len(records)} posts needing summary")
-
+    
     return records
 
 if __name__ == "__main__":
@@ -38,7 +37,8 @@ def update_post_summary(record_id: str, summary_text: str):
     )
 
     table.update(record_id, {
-        "Topic Summary": summary_text
+        "Topic Summary": summary_text,
+        "Processed": True
     })
 
     print(f"Updated record {record_id}")
