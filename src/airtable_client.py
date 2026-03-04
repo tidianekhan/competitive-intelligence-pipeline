@@ -11,18 +11,17 @@ def fetch_posts_needing_summary(limit=None):
         AIRTABLE_TABLE_NAME,
     )
 
-    print("Fetching posts where AI Summary is empty...")
+    print("Fetching posts where Topic Summary is blank...")
 
     records = table.all(
-    formula="{Topic Summary} = BLANK()",
-    max_records=limit
-)
-
+        formula="{Topic Summary} = BLANK()",
+        sort=[{"field": "timestamp", "direction": "desc"}],
+        max_records=limit
+    )
 
     print(f"Found {len(records)} posts needing summary")
 
     return records
-
 
 if __name__ == "__main__":
     posts = fetch_posts_needing_summary(limit=5)
