@@ -14,7 +14,7 @@ def fetch_posts_needing_summary(limit=None):
     print("Fetching posts where Processed is unchecked...")
 
     records = table.all(
-        formula="{Processed} = 0",
+        formula="NOT({Processed} = TRUE())",
         max_records=limit
     )
 
@@ -22,12 +22,6 @@ def fetch_posts_needing_summary(limit=None):
     
     return records
 
-if __name__ == "__main__":
-    posts = fetch_posts_needing_summary(limit=5)
-
-    for post in posts:
-        print("------")
-        print(post["fields"])
 
 def update_post_summary(record_id: str, summary_text: str):
     table = Table(
@@ -36,6 +30,10 @@ def update_post_summary(record_id: str, summary_text: str):
         AIRTABLE_TABLE_NAME,
     )
 
+    if not summary_text or not summary_text.strip():
+        print(f"Skipping record {record_id} — empty summary, not marking as processed")
+        return
+
     table.update(record_id, {
         "Topic Summary": summary_text,
         "Processed": True
@@ -43,3 +41,10 @@ def update_post_summary(record_id: str, summary_text: str):
 
     print(f"Updated record {record_id}")
 
+
+if __name__ == "__main__":
+    posts = fetch_posts_needing_summary(limit=5)
+
+    for post in posts:
+        print("------")
+        print(post["fields"])
