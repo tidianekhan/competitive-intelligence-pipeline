@@ -1,14 +1,13 @@
 name: Daily AI Pipeline
-
 on:
   schedule:
     - cron: '30 7 * * *'  # Runs daily at 07:30 UTC
   workflow_dispatch:      # Allows manual trigger from GitHub
-
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write     # ← required to push the ledger back to repo
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,9 +29,16 @@ jobs:
           AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MAX_POSTS_PER_RUN: ${{ secrets.MAX_POSTS_PER_RUN }}
-
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
           DIGEST_RECIPIENTS: ${{ secrets.DIGEST_RECIPIENTS }}
         run: |
           python src/main.py
+
+      - name: Commit updated ledger
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add processed_urls.json
+          git diff --staged --quiet || git commit -m "Update processed URLs ledger [skip ci]"
+          git push
