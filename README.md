@@ -1,6 +1,5 @@
 # AI Competitor Social Media Monitoring
 
-
 **Status:** v2 Complete (Core Pipeline)  
 **Alert Layer:** Pending Implementation  
 
@@ -16,26 +15,41 @@ The pipeline:
 
 1. Scrapes competitor Instagram posts daily via Apify  
 2. Stores structured post data in Airtable  
-3. Identifies unprocessed posts  
+3. Syncs a local URL ledger with Airtable state to identify unprocessed posts  
 4. Generates concise AI-powered topic summaries  
-5. Updates Airtable records to prevent duplicate processing  
+5. Updates Airtable records and the local ledger to prevent duplicate processing  
 6. Sends a daily automated HTML email digest of newly processed posts  
 
 The result is a fully automated, scalable competitive intelligence system requiring zero manual intervention.
 
-
 ---
 
 ## Architecture
-
-Apify (Scheduled Scraper) --> Airtable (Central Intelligence Database) --> Python Intelligence Layer --> OpenAI (Topic Summarization) --> Airtable Update (Processed State) --> SendGrid (Daily HTML Digest) --> Stakeholders
-
+```
+Apify (Scheduled Scraper)
+        │
+        ▼
+Airtable (Central Intelligence Database)
+        │
+        ▼
+Python Intelligence Layer
+   ├─ Ledger Sync (processed_urls.json)
+   ├─ Airtable Client
+   ├─ OpenAI LLM Client
+   └─ Email Digest Builder
+        │
+        ▼
+SendGrid (Daily HTML Digest)
+        │
+        ▼
+Stakeholders
+```
 
 The Python layer runs daily via GitHub Actions using secure environment secrets.
 
 ---
 
-## Core Workflow (v2)
+## Core Workflow
 
 ### 1. Data Collection
 
@@ -56,26 +70,40 @@ Apify uses native Airtable Exporter integration to UPSERT records using URL as t
 Airtable acts as the structured intelligence database:
 
 - Stores all raw post data
-- Tracks processing state
-- Filters records where `{Topic Summary}` is blank
+- Holds AI-generated topic summaries once enriched
 
 ---
 
-### 3. Python Intelligence Layer
+### 3. Ledger-Based Processing State
+
+Processing state is tracked via a local `processed_urls.json` ledger committed to the repository rather than relying on Airtable field state. This makes the pipeline resilient to external overwrites from Apify UPSERT operations.
+
+At the start of every run the pipeline:
+
+- Reads current Airtable state
+- Adds URLs that have summaries but are missing from the ledger
+- Removes URLs that are in the ledger but have lost their summary
+- Saves the corrected ledger before processing begins
+
+This self-healing sync ensures the ledger and Airtable remain consistent across runs without manual intervention.
+
+---
+
+### 4. Python Intelligence Layer
 
 The Python pipeline:
 
-- Queries Airtable for unprocessed posts
+- Syncs the ledger with Airtable state
+- Queries Airtable for unprocessed posts (URLs not in ledger)
 - Sends captions to an LLM client
 - Generates a neutral 15–25 word topic summary
-- Updates the original Airtable record
-- Ensures each post is processed only once
-
-Once the summary field is populated, Airtable formula logic automatically excludes the record from future runs.
+- Updates the Airtable record with the summary
+- Adds the URL to the ledger only on confirmed successful write
+- Ensures each post is processed exactly once
 
 ---
 
-## 4. Automated Digest Layer
+### 5. Automated Digest Layer
 
 After processing posts, the system:
 
@@ -97,8 +125,10 @@ This ensures stakeholders receive concise daily competitive intelligence updates
 The system runs fully automatically via:
 
 - **Apify Scheduler** → Scraping
-- **GitHub Actions (cron job)** → Python enrichment + digest
+- **GitHub Actions (cron: 07:30 UTC daily)** → Ledger sync, Python enrichment, digest
 - **SendGrid** → Email delivery
+
+The GitHub Actions workflow commits the updated ledger back to the repository after each run.
 
 All secrets are managed securely via:
 
@@ -111,7 +141,7 @@ No manual execution is required.
 
 ## What Changed vs v1
 
-Version 2+ introduced significant architectural improvements:
+Version 2 introduced significant architectural improvements:
 
 - Removed Make (reduced cost and complexity)
 - Implemented native Apify → Airtable integration
@@ -121,6 +151,8 @@ Version 2+ introduced significant architectural improvements:
 - Added GitHub Actions scheduling
 - Added secure secret management
 - Reduced external orchestration dependencies
+- Replaced Airtable field-based processing state with a local URL ledger, making the pipeline resilient to external field overwrites
+- Added self-healing ledger sync at the start of every run
 
 ---
 
@@ -137,22 +169,18 @@ Version 2+ introduced significant architectural improvements:
 ---
 
 ## Project Structure
-
+```
 src/
+├── main.py              # Pipeline entry point
+├── airtable_client.py   # Airtable integration and ledger management
+├── llm_client.py        # LLM abstraction layer
+├── email_client.py      # SendGrid HTML digest layer
+├── models.py            # Data models
+├── prompts.py           # Prompt templates
+└── config.py            # Environment configuration
 
-├── main.py # Pipeline entry point
-
-├── airtable_client.py # Airtable integration
-
-├── llm_client.py # LLM abstraction layer
-
-├── email_client.py # SendGrid HTML digest layer
-
-├── models.py # Data models
-
-├── prompts.py # Prompt templates
-
-└── config.py # Environment configuration
+processed_urls.json      # Processed URL ledger (committed to repo)
+```
 
 ---
 
@@ -160,19 +188,21 @@ src/
 
 1. Clone repository
 2. Create virtual environment
-3. Install dependencies: pip install -r requirements.txt
+3. Install dependencies: `pip install -r requirements.txt`
 4. Create `.env` file using `.env.example`
 5. Configure required environment variables:
-   AIRTABLE_API_KEY
-   AIRTABLE_BASE_ID
-   AIRTABLE_TABLE_NAME
-   OPENAI_API_KEY
-   SENDGRID_API_KEY
-   SENDGRID_FROM_EMAIL
-   DIGEST_RECIPIENTS
-   MAX_POSTS_PER_RUN
-6. Run the pipeline: python src/main.py
-
+```
+AIRTABLE_API_KEY
+AIRTABLE_BASE_ID
+AIRTABLE_TABLE_NAME
+OPENAI_API_KEY
+SENDGRID_API_KEY
+SENDGRID_FROM_EMAIL
+DIGEST_RECIPIENTS
+MAX_POSTS_PER_RUN
+```
+6. Initialise the ledger: `echo "[]" > processed_urls.json`
+7. Run the pipeline: `python src/main.py`
 
 ---
 
@@ -181,10 +211,13 @@ src/
 - Modular integrations
 - Clear separation of orchestration and API clients
 - Idempotent processing (no duplicate summaries)
+- Resilient state management via local ledger
+- Self-healing sync on every run
 - Deterministic daily digest logic
 - Secure secret management
 - Minimal infrastructure overhead
 - Scalable architecture ready for advanced reporting
+
 ---
 
 ## Purpose
@@ -194,12 +227,7 @@ This project demonstrates:
 - Automation architecture design
 - API integration workflows
 - LLM-powered enrichment pipelines
+- Resilient state management patterns
 - Automated executive reporting systems
 - Structured intelligence system design
 - Clean modular Python implementation
-
----
-
-
-
-
