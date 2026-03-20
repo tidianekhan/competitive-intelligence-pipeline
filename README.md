@@ -175,8 +175,6 @@ src/
 ├── airtable_client.py   # Airtable integration and ledger management
 ├── llm_client.py        # LLM abstraction layer
 ├── email_client.py      # SendGrid HTML digest layer
-├── models.py            # Data models
-├── prompts.py           # Prompt templates
 └── config.py            # Environment configuration
 
 processed_urls.json      # Processed URL ledger (committed to repo)
