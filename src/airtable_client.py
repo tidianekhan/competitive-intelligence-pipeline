@@ -18,7 +18,39 @@ def save_processed_urls(urls: set):
         json.dump(sorted(list(urls)), f, indent=2)
 
 
-def fetch_posts_needing_summary(limit=None) -> tuple[list, set]:
+def sync_ledger_with_airtable() -> set:
+    table = Table(
+        AIRTABLE_API_KEY,
+        AIRTABLE_BASE_ID,
+        AIRTABLE_TABLE_NAME,
+    )
+
+    print("Syncing ledger with Airtable...")
+    all_records = table.all()
+
+    has_summary = {
+        r["fields"].get("url")
+        for r in all_records
+        if r["fields"].get("Topic Summary")
+        and r["fields"].get("url")
+    }
+
+    no_summary = {
+        r["fields"].get("url")
+        for r in all_records
+        if not r["fields"].get("Topic Summary")
+        and r["fields"].get("url")
+    }
+
+    current_ledger = load_processed_urls()
+    synced = (current_ledger | has_summary) - no_summary
+    save_processed_urls(synced)
+
+    print(f"Ledger synced: {len(current_ledger)} → {len(synced)}")
+    return synced
+
+
+def fetch_posts_needing_summary(limit=None, existing_urls=None) -> tuple[list, set]:
     limit = limit or MAX_POSTS_PER_RUN
 
     table = Table(
@@ -27,11 +59,11 @@ def fetch_posts_needing_summary(limit=None) -> tuple[list, set]:
         AIRTABLE_TABLE_NAME,
     )
 
+    processed_urls = existing_urls if existing_urls is not None else load_processed_urls()
+
     print("Fetching all records from Airtable...")
     all_records = table.all()
     print(f"Total records in Airtable: {len(all_records)}")
-
-    processed_urls = load_processed_urls()
     print(f"Total URLs in ledger: {len(processed_urls)}")
 
     remaining_total = len([
@@ -62,12 +94,15 @@ def update_post_summary(record_id: str, summary_text: str) -> bool:
         print(f"Skipping record {record_id} — empty summary, not marking as processed")
         return False
 
-    table.update(record_id, {
-        "Topic Summary": summary_text,
-    })
-
-    print(f"Updated record {record_id}")
-    return True
+    try:
+        table.update(record_id, {
+            "Topic Summary": summary_text,
+        })
+        print(f"Updated record {record_id}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to update record {record_id}: {e}")
+        return False
 
 
 if __name__ == "__main__":

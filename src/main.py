@@ -1,6 +1,6 @@
 # src/main.py
 
-from airtable_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls
+from airtable_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls, sync_ledger_with_airtable
 from llm_client import generate_summary
 from config import MAX_POSTS_PER_RUN
 from email_client import send_digest_email
@@ -9,7 +9,14 @@ from email_client import send_digest_email
 if __name__ == "__main__":
     print("🚀 Running Insta Intel Pipeline")
 
-    posts, processed_urls = fetch_posts_needing_summary(limit=MAX_POSTS_PER_RUN)
+    # Sync ledger with Airtable state before processing
+    synced_urls = sync_ledger_with_airtable()
+
+    posts, processed_urls = fetch_posts_needing_summary(
+        limit=MAX_POSTS_PER_RUN,
+        existing_urls=synced_urls
+    )
+
     processed_records = []
 
     if not posts:
