@@ -44,7 +44,7 @@ def sync_ledger_with_airtable() -> set:
 
     current_ledger = load_processed_urls()
 
-    # Only remove URLs that were previously processed but lost their summary
+    # Only remove URLs that were previously processed but have lost their summary
     # NOT all unprocessed records (which would shrink the ledger incorrectly)
     ledger_with_no_summary = current_ledger & no_summary
 
