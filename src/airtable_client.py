@@ -43,7 +43,12 @@ def sync_ledger_with_airtable() -> set:
     }
 
     current_ledger = load_processed_urls()
-    synced = (current_ledger | has_summary) - no_summary
+
+    # Only remove URLs that were previously processed but lost their summary
+    # NOT all unprocessed records (which would shrink the ledger incorrectly)
+    ledger_with_no_summary = current_ledger & no_summary
+
+    synced = (current_ledger | has_summary) - ledger_with_no_summary
     save_processed_urls(synced)
 
     print(f"Ledger synced: {len(current_ledger)} → {len(synced)}")
