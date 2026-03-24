@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main       # ← always checkout latest main
+          fetch-depth: 0  # ← fetch full history to avoid stale state
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,6 +24,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Pull latest changes
+        run: |
+          git pull origin main  # ← ensure ledger is fully up to date before running
 
       - name: Run pipeline
         env:
