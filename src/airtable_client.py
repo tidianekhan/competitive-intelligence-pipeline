@@ -1,9 +1,14 @@
 import json
 import os
-from pyairtable import Table
+from pyairtable import Api
 from config import AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME, MAX_POSTS_PER_RUN
 
 LEDGER_PATH = "processed_urls.json"
+
+
+def get_table():
+    api = Api(AIRTABLE_API_KEY)
+    return api.table(AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME)
 
 
 def load_processed_urls() -> set:
@@ -19,11 +24,7 @@ def save_processed_urls(urls: set):
 
 
 def sync_ledger_with_airtable() -> set:
-    table = Table(
-        AIRTABLE_API_KEY,
-        AIRTABLE_BASE_ID,
-        AIRTABLE_TABLE_NAME,
-    )
+    table = get_table()
 
     print("Syncing ledger with Airtable...")
     all_records = table.all()
@@ -58,11 +59,7 @@ def sync_ledger_with_airtable() -> set:
 def fetch_posts_needing_summary(limit=None, existing_urls=None) -> tuple[list, set]:
     limit = limit or MAX_POSTS_PER_RUN
 
-    table = Table(
-        AIRTABLE_API_KEY,
-        AIRTABLE_BASE_ID,
-        AIRTABLE_TABLE_NAME,
-    )
+    table = get_table()
 
     processed_urls = existing_urls if existing_urls is not None else load_processed_urls()
 
@@ -89,11 +86,7 @@ def fetch_posts_needing_summary(limit=None, existing_urls=None) -> tuple[list, s
 
 
 def update_post_summary(record_id: str, summary_text: str) -> bool:
-    table = Table(
-        AIRTABLE_API_KEY,
-        AIRTABLE_BASE_ID,
-        AIRTABLE_TABLE_NAME,
-    )
+    table = get_table()
 
     if not summary_text or not summary_text.strip():
         print(f"Skipping record {record_id} — empty summary, not marking as processed")
