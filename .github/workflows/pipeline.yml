@@ -14,21 +14,17 @@ jobs:
         with:
           ref: main       # ← always checkout latest main
           fetch-depth: 0  # ← fetch full history to avoid stale state
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
       - name: Pull latest changes
         run: |
           git pull origin main  # ← ensure ledger is fully up to date before running
-
       - name: Run pipeline
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
@@ -41,11 +37,12 @@ jobs:
           DIGEST_RECIPIENTS: ${{ secrets.DIGEST_RECIPIENTS }}
         run: |
           python src/main.py
-
       - name: Commit updated ledger
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+          echo "Ledger contents before commit:"
+          cat processed_urls.json | python -c "import json,sys; d=json.load(sys.stdin); print(f'URL count: {len(d)}')"
           git add processed_urls.json
           git diff --staged --quiet || git commit -m "Update processed URLs ledger [skip ci]"
           git push
