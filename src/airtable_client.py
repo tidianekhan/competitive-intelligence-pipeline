@@ -25,9 +25,9 @@ def save_processed_urls(urls: set):
 
 def sync_ledger_with_airtable() -> set:
     table = get_table()
-
     print("Syncing ledger with Airtable...")
     all_records = table.all()
+    print(f"Records fetched from Airtable: {len(all_records)}")
 
     has_summary = {
         r["fields"].get("url")
@@ -35,6 +35,7 @@ def sync_ledger_with_airtable() -> set:
         if r["fields"].get("Topic Summary")
         and r["fields"].get("url")
     }
+    print(f"Records with Topic Summary: {len(has_summary)}")
 
     no_summary = {
         r["fields"].get("url")
@@ -42,6 +43,17 @@ def sync_ledger_with_airtable() -> set:
         if not r["fields"].get("Topic Summary")
         and r["fields"].get("url")
     }
+    print(f"Records without Topic Summary: {len(no_summary)}")
+
+    current_ledger = load_processed_urls()
+    ledger_with_no_summary = current_ledger & no_summary
+    print(f"Ledger URLs with no summary (to be removed): {len(ledger_with_no_summary)}")
+    print(f"URLs being removed: {ledger_with_no_summary}")
+
+    synced = (current_ledger | has_summary) - ledger_with_no_summary
+    save_processed_urls(synced)
+    print(f"Ledger synced: {len(current_ledger)} → {len(synced)}")
+    return synced
 
     current_ledger = load_processed_urls()
 
