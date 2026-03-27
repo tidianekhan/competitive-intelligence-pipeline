@@ -1,7 +1,7 @@
 name: Daily AI Pipeline
 on:
   schedule:
-    - cron: '55 08 * * *'  # Runs daily at 07:30 UTC
+    - cron: '05 09 * * *'  # Runs daily at 07:30 UTC
   workflow_dispatch:      # Allows manual trigger from GitHub
 jobs:
   run-pipeline:
