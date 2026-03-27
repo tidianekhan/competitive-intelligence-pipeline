@@ -24,55 +24,14 @@ def save_processed_urls(urls: set):
 
 
 def sync_ledger_with_airtable() -> set:
-    table = get_table()
-    print("Syncing ledger with Airtable...")
-    all_records = table.all()
-    print(f"Records fetched from Airtable: {len(all_records)}")
-
-    has_summary = {
-        r["fields"].get("url")
-        for r in all_records
-        if r["fields"].get("Topic Summary")
-        and r["fields"].get("url")
-    }
-    print(f"Records with Topic Summary: {len(has_summary)}")
-
-    no_summary = {
-        r["fields"].get("url")
-        for r in all_records
-        if not r["fields"].get("Topic Summary")
-        and r["fields"].get("url")
-    }
-    print(f"Records without Topic Summary: {len(no_summary)}")
-
     current_ledger = load_processed_urls()
-    ledger_with_no_summary = current_ledger & no_summary
-    print(f"Ledger URLs with no summary (to be removed): {len(ledger_with_no_summary)}")
-    print(f"URLs being removed: {ledger_with_no_summary}")
-
-    synced = (current_ledger | has_summary) - ledger_with_no_summary
-    save_processed_urls(synced)
-    print(f"Ledger synced: {len(current_ledger)} → {len(synced)}")
-    return synced
-
-    current_ledger = load_processed_urls()
-
-    # Only remove URLs that were previously processed but have lost their summary
-    # NOT all unprocessed records (which would shrink the ledger incorrectly)
-    ledger_with_no_summary = current_ledger & no_summary
-
-    synced = (current_ledger | has_summary) - ledger_with_no_summary
-    save_processed_urls(synced)
-
-    print(f"Ledger synced: {len(current_ledger)} → {len(synced)}")
-    return synced
+    print(f"Ledger loaded: {len(current_ledger)} URLs")
+    return current_ledger
 
 
 def fetch_posts_needing_summary(limit=None, existing_urls=None) -> tuple[list, set]:
     limit = limit or MAX_POSTS_PER_RUN
-
     table = get_table()
-
     processed_urls = existing_urls if existing_urls is not None else load_processed_urls()
 
     print("Fetching all records from Airtable...")
