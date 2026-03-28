@@ -41,8 +41,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          echo "Ledger contents before commit:"
-          cat processed_urls.json | python -c "import json,sys; d=json.load(sys.stdin); print(f'URL count: {len(d)}')"
           git add processed_urls.json
           git diff --staged --quiet || git commit -m "Update processed URLs ledger [skip ci]"
           git push
