@@ -1,7 +1,7 @@
 # src/main.py
 
 import re
-from airtable_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls, sync_ledger_with_airtable
+from airtable_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls
 from llm_client import generate_summary
 from config import MAX_POSTS_PER_RUN
 from email_client import send_digest_email
@@ -16,13 +16,7 @@ def is_meaningful_caption(caption: str) -> bool:
 if __name__ == "__main__":
     print("🚀 Running Insta Intel Pipeline")
 
-    # Sync ledger with Airtable state before processing
-    synced_urls = sync_ledger_with_airtable()
-
-    posts, processed_urls = fetch_posts_needing_summary(
-        limit=MAX_POSTS_PER_RUN,
-        existing_urls=synced_urls
-    )
+    posts, processed_urls = fetch_posts_needing_summary(limit=MAX_POSTS_PER_RUN)
 
     processed_records = []
 

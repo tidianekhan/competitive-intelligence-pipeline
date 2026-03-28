@@ -23,31 +23,24 @@ def save_processed_urls(urls: set):
         json.dump(sorted(list(urls)), f, indent=2)
 
 
-def sync_ledger_with_airtable() -> set:
-    current_ledger = load_processed_urls()
-    print(f"Ledger loaded: {len(current_ledger)} URLs")
-    return current_ledger
-
-
-def fetch_posts_needing_summary(limit=None, existing_urls=None) -> tuple[list, set]:
+def fetch_posts_needing_summary(limit=None) -> tuple[list, set]:
     limit = limit or MAX_POSTS_PER_RUN
     table = get_table()
-    processed_urls = existing_urls if existing_urls is not None else load_processed_urls()
+    processed_urls = load_processed_urls()
 
     print("Fetching all records from Airtable...")
     all_records = table.all()
     print(f"Total records in Airtable: {len(all_records)}")
     print(f"Total URLs in ledger: {len(processed_urls)}")
 
-    remaining_total = len([
-        r for r in all_records
-        if r["fields"].get("url") not in processed_urls
-    ])
-
     unprocessed = [
         r for r in all_records
         if r["fields"].get("url") not in processed_urls
-    ][:limit]
+        and r["fields"].get("url")
+    ]
+
+    remaining_total = len(unprocessed)
+    unprocessed = unprocessed[:limit]
 
     print(f"Found {len(unprocessed)} posts to process this run")
     print(f"Total still unprocessed in Airtable: {remaining_total}")
