@@ -1,9 +1,9 @@
 # AI Competitor Social Media Monitoring
 
-**Status:** v2 Complete (Core Pipeline)  
+**Status:** v3 Complete (Google Sheets Migration)  
 **Alert Layer:** Implemented
 
-An AI-powered competitive intelligence pipeline that monitors competitor Instagram activity, structures raw data in Airtable, and enriches posts with LLM-generated topic summaries using a modular Python workflow.
+An AI-powered competitive intelligence pipeline that monitors competitor Instagram activity, stores structured post data in Google Sheets, and enriches posts with LLM-generated topic summaries using a modular Python workflow.
 
 ---
 
@@ -13,12 +13,12 @@ This system automates the collection, enrichment, and distribution of competitor
 
 The pipeline:
 
-1. Scrapes competitor Instagram posts daily via Apify  
-2. Stores structured post data in Airtable  
-3. Syncs a local URL ledger with Airtable state to identify unprocessed posts  
-4. Generates concise AI-powered topic summaries  
-5. Updates Airtable records and the local ledger to prevent duplicate processing  
-6. Sends a daily automated HTML email digest of newly processed posts  
+1. Scrapes competitor Instagram posts daily via Apify
+2. Writes structured post data directly to Google Sheets via native Apify integration
+3. Reads unprocessed posts from Google Sheets using a local URL ledger
+4. Generates concise AI-powered topic summaries
+5. Writes summaries back to Google Sheets and updates the local ledger
+6. Sends a daily automated HTML email digest of newly processed posts
 
 The result is a fully automated, scalable competitive intelligence system requiring zero manual intervention.
 
@@ -29,12 +29,12 @@ The result is a fully automated, scalable competitive intelligence system requir
 Apify (Scheduled Scraper)
         │
         ▼
-Airtable (Central Intelligence Database)
+Google Sheets (Central Intelligence Database)
         │
         ▼
 Python Intelligence Layer
-   ├─ Ledger Sync (processed_urls.json)
-   ├─ Airtable Client
+   ├─ Ledger (processed_urls.json)
+   ├─ Google Sheets Client
    ├─ OpenAI LLM Client
    └─ Email Digest Builder
         │
@@ -61,31 +61,32 @@ The Python layer runs daily via GitHub Actions using secure environment secrets.
   - Owner Name
   - Timestamp
 
-Apify uses native Airtable Exporter integration to UPSERT records using URL as the primary key, preventing duplicates automatically.
+Apify uses the `lukaskrivka/google-sheets` integration to append records to Google Sheets, deduplicating by URL as the primary key to prevent duplicates automatically.
 
 ---
 
 ### 2. Central Data Storage
 
-Airtable acts as the structured intelligence database:
+Google Sheets acts as the structured intelligence database:
 
 - Stores all raw post data
 - Holds AI-generated topic summaries once enriched
+- Accessible and editable without any API limits or account restrictions
 
 ---
 
 ### 3. Ledger-Based Processing State
 
-Processing state is tracked via a local `processed_urls.json` ledger committed to the repository rather than relying on Airtable field state. This makes the pipeline resilient to external overwrites from Apify UPSERT operations.
+Processing state is tracked via a local `processed_urls.json` ledger committed to the repository. This is the single source of truth — the ledger only ever grows, never shrinks.
 
 At the start of every run the pipeline:
 
-- Reads current Airtable state
-- Adds URLs that have summaries but are missing from the ledger
-- Removes URLs that are in the ledger but have lost their summary
-- Saves the corrected ledger before processing begins
+- Loads the ledger as-is
+- Fetches all rows from Google Sheets
+- Skips any URL already present in the ledger
+- Processes only new, unprocessed posts
 
-This self-healing sync ensures the ledger and Airtable remain consistent across runs without manual intervention.
+This simple approach is resilient and predictable — no reconciliation logic, no regressions.
 
 ---
 
@@ -93,11 +94,12 @@ This self-healing sync ensures the ledger and Airtable remain consistent across 
 
 The Python pipeline:
 
-- Syncs the ledger with Airtable state
-- Queries Airtable for unprocessed posts (URLs not in ledger)
+- Loads the ledger from `processed_urls.json`
+- Queries Google Sheets for unprocessed posts (URLs not in ledger)
+- Skips posts with captions too short or emoji-only
 - Sends captions to an LLM client
 - Generates a neutral 15–25 word topic summary
-- Updates the Airtable record with the summary
+- Writes the summary back to the `Topic Summary` column in Google Sheets
 - Adds the URL to the ledger only on confirmed successful write
 - Ensures each post is processed exactly once
 
@@ -124,8 +126,8 @@ This ensures stakeholders receive concise daily competitive intelligence updates
 
 The system runs fully automatically via:
 
-- **Apify Scheduler** → Scraping
-- **GitHub Actions (cron: 07:30 UTC daily)** → Ledger sync, Python enrichment, digest
+- **Apify Scheduler** → Scraping and Google Sheets population
+- **GitHub Actions (cron: 07:30 UTC daily)** → Ledger load, Python enrichment, digest
 - **SendGrid** → Email delivery
 
 The GitHub Actions workflow commits the updated ledger back to the repository after each run.
@@ -139,20 +141,15 @@ No manual execution is required.
 
 ---
 
-## What Changed vs v1
+## What Changed vs v2
 
-Version 2 introduced significant architectural improvements:
+Version 3 introduced a full data storage migration and pipeline simplification:
 
-- Removed Make (reduced cost and complexity)
-- Implemented native Apify → Airtable integration
-- Introduced a dedicated Python intelligence layer
-- Added modular LLM abstraction
-- Implemented automated daily HTML email digest
-- Added GitHub Actions scheduling
-- Added secure secret management
-- Reduced external orchestration dependencies
-- Replaced Airtable field-based processing state with a local URL ledger, making the pipeline resilient to external field overwrites
-- Added self-healing ledger sync at the start of every run
+- **Replaced Airtable with Google Sheets** — more reliable, no record limits, native Apify integration
+- **Removed ledger sync logic entirely** — the ledger is now the single source of truth and only grows
+- **Simplified `sheets_client.py`** — clean read/write against Google Sheets with no reconciliation logic
+- **Removed self-healing sync** — eliminated the source of recurring ledger regressions
+- **Apify now writes directly to Google Sheets** via `lukaskrivka/google-sheets` with URL-based deduplication
 
 ---
 
@@ -161,7 +158,7 @@ Version 2 introduced significant architectural improvements:
 - Python
 - OpenAI API (LLM abstraction layer)
 - Apify
-- Airtable
+- Google Sheets (via `gspread` and Google Service Account)
 - SendGrid
 - GitHub Actions (scheduler)
 - dotenv
@@ -172,7 +169,7 @@ Version 2 introduced significant architectural improvements:
 ```
 src/
 ├── main.py              # Pipeline entry point
-├── airtable_client.py   # Airtable integration and ledger management
+├── sheets_client.py     # Google Sheets integration and ledger management
 ├── llm_client.py        # LLM abstraction layer
 ├── email_client.py      # SendGrid HTML digest layer
 └── config.py            # Environment configuration
@@ -190,17 +187,17 @@ processed_urls.json      # Processed URL ledger (committed to repo)
 4. Create `.env` file using `.env.example`
 5. Configure required environment variables:
 ```
-AIRTABLE_API_KEY
-AIRTABLE_BASE_ID
-AIRTABLE_TABLE_NAME
-OPENAI_API_KEY
-SENDGRID_API_KEY
-SENDGRID_FROM_EMAIL
-DIGEST_RECIPIENTS
-MAX_POSTS_PER_RUN
+GOOGLE_SHEETS_CREDENTIALS=<service account JSON as single line>
+GOOGLE_SHEET_ID=<your Google Sheet ID>
+OPENAI_API_KEY=<your OpenAI key>
+SENDGRID_API_KEY=<your SendGrid key>
+SENDGRID_FROM_EMAIL=<verified sender email>
+DIGEST_RECIPIENTS=<comma separated recipient emails>
+MAX_POSTS_PER_RUN=<number of posts to process per run>
 ```
-6. Initialise the ledger: `echo "[]" > processed_urls.json`
-7. Run the pipeline: `python3 src/main.py`
+6. Share your Google Sheet with the service account email (Editor access)
+7. Initialise the ledger: `echo "[]" > processed_urls.json`
+8. Run the pipeline: `python3 src/main.py`
 
 ---
 
@@ -210,7 +207,7 @@ MAX_POSTS_PER_RUN
 - Clear separation of orchestration and API clients
 - Idempotent processing (no duplicate summaries)
 - Resilient state management via local ledger
-- Self-healing sync on every run
+- Single source of truth — ledger only grows
 - Deterministic daily digest logic
 - Secure secret management
 - Minimal infrastructure overhead
