@@ -1,7 +1,7 @@
 # src/main.py
 
 import re
-from airtable_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls
+from sheets_client import fetch_posts_needing_summary, update_post_summary, save_processed_urls
 from llm_client import generate_summary
 from config import MAX_POSTS_PER_RUN
 from email_client import send_digest_email
@@ -24,26 +24,25 @@ if __name__ == "__main__":
         print("No posts need processing.")
     else:
         for post in posts:
-            record_id = post["id"]
-            url = post["fields"].get("url", "")
-            caption = post["fields"].get("caption", "")
+            url = post.get("url", "")
+            caption = post.get("caption", "")
 
-            print(f"\nProcessing: {record_id}")
+            print(f"\nProcessing: {url}")
 
             if not is_meaningful_caption(caption):
-                print(f"⚠️ Skipping {record_id} — caption too short or emoji only")
-                processed_urls.add(url)  # add to ledger so it isn't retried daily
+                print(f"⚠️ Skipping {url} — caption too short or emoji only")
+                processed_urls.add(url)
                 continue
 
             summary_text = generate_summary(caption)
-            success = update_post_summary(record_id, summary_text)
+            success = update_post_summary(url, summary_text)
 
             if success:
                 processed_urls.add(url)
                 processed_records.append(
                     {
-                        "ownerFullName": post["fields"].get("ownerFullName", ""),
-                        "timestamp": post["fields"].get("timestamp", ""),
+                        "ownerFullName": post.get("ownerFullName", ""),
+                        "timestamp": post.get("timestamp", ""),
                         "topicSummary": summary_text,
                         "url": url,
                     }

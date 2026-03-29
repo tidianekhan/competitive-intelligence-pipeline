@@ -200,7 +200,7 @@ DIGEST_RECIPIENTS
 MAX_POSTS_PER_RUN
 ```
 6. Initialise the ledger: `echo "[]" > processed_urls.json`
-7. Run the pipeline: `python src/main.py`
+7. Run the pipeline: `python3 src/main.py`
 
 ---
 
