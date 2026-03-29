@@ -27,9 +27,8 @@ jobs:
           git pull origin main  # ← ensure ledger is fully up to date before running
       - name: Run pipeline
         env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MAX_POSTS_PER_RUN: ${{ secrets.MAX_POSTS_PER_RUN }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
